@@ -1,7 +1,7 @@
 import { Axios } from "axios";
 
 const axiosInstance = new Axios({
-  baseURL: "https://21rlbqvm-8000.inc1.devtunnels.ms/api",
+  baseURL: "http://localhost:8000/api",
 });
 
 axiosInstance.interceptors.request.use(
@@ -13,6 +13,17 @@ axiosInstance.interceptors.request.use(
     config.data = JSON.stringify(config.data);
 
     return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+axiosInstance.interceptors.response.use(
+  (response) => {
+    response.data = JSON.parse(response.data);
+
+    return response;
   },
   (error) => {
     return Promise.reject(error);

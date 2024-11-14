@@ -2,6 +2,7 @@ import { Button, Table, Tag } from "antd";
 import { useEffect, useState } from "react";
 import TaskModal from "../../components/tasks/Task.modal";
 import axiosInstance from "../../config/axios.config";
+import confirm from "antd/es/modal/confirm";
 
 export interface Task {
   title: string;
@@ -10,26 +11,45 @@ export interface Task {
 }
 
 function Tasks() {
-  const [createTaskModalOpen, changeCreateTaskModalOpenStatus] =
-    useState<boolean>(false);
+  const [taskModalOpen, changeTaskModalOpenStatus] = useState<boolean>(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task>();
   const [fetchingTasks, setFetchingTasks] = useState<boolean>(true);
+  const [refetch, setRefetch] = useState<boolean>(false);
 
   const handleAddTask = async () => {
-    changeCreateTaskModalOpenStatus(!createTaskModalOpen);
+    changeTaskModalOpenStatus(!taskModalOpen);
+  };
+
+  const handleClose = () => {
+    setSelectedTask(undefined);
+    changeTaskModalOpenStatus(false);
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    setFetchingTasks(true);
+    try {
+      await axiosInstance.delete(`/tasks/${taskId}`);
+    } catch (error) {}
+    setRefetch(true);
+    setFetchingTasks(false);
   };
 
   const fetchTasks = async () => {
     setFetchingTasks(true);
+    setRefetch(false);
     try {
-      await axiosInstance.get("/tasks").then((response) => {
-        setTasks(response.data.data);
+      await axiosInstance.get("/tasks/").then((response) => {
+        setTasks(response.data);
       });
     } catch (error) {}
 
     setFetchingTasks(false);
   };
+
+  useEffect(() => {
+    if (refetch) fetchTasks();
+  }, [refetch]);
 
   useEffect(() => {
     fetchTasks();
@@ -73,45 +93,52 @@ function Tasks() {
             },
           },
           {
-            title: "",
+            title: "Actions",
             render: (_, record) => {
               return (
-                <Button
-                  onClick={() => {
-                    setSelectedTask(record);
-                  }}
-                >
-                  Edit
-                </Button>
+                <div>
+                  <Button
+                    style={{
+                      marginRight: 20,
+                    }}
+                    onClick={() => {
+                      changeTaskModalOpenStatus(true);
+                      setSelectedTask(() => record);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    type="primary"
+                    color="danger"
+                    onClick={() =>
+                      confirm({
+                        title: "Do you want to delete this task?",
+                        onOk: async () => {
+                          await handleDeleteTask(record.id);
+                        },
+                      })
+                    }
+                  >
+                    Delete
+                  </Button>
+                </div>
               );
             },
           },
         ]}
       />
-      {createTaskModalOpen ? (
+      {taskModalOpen && (
         <TaskModal
-          handleClose={() => {
-            changeCreateTaskModalOpenStatus(false);
-          }}
+          key={selectedTask?.id}
+          open={taskModalOpen}
+          handleClose={handleClose}
           handleTaskSuccess={() => {
-            changeCreateTaskModalOpenStatus(false);
+            setRefetch(true);
+            handleClose();
           }}
+          initialData={selectedTask && selectedTask}
         />
-      ) : (
-        <></>
-      )}
-      {selectedTask ? (
-        <TaskModal
-          handleClose={() => {
-            changeCreateTaskModalOpenStatus(false);
-          }}
-          handleTaskSuccess={() => {
-            changeCreateTaskModalOpenStatus(false);
-          }}
-          initialData={selectedTask}
-        />
-      ) : (
-        <></>
       )}
     </div>
   );

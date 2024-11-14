@@ -1,27 +1,43 @@
 import { Modal, Form, Input, Checkbox, Button } from "antd";
 import { Task } from "../../pages/tasks";
 import { useForm } from "antd/es/form/Form";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import axiosInstance from "../../config/axios.config";
+
 type TaskModalProps = {
   handleTaskSuccess: () => void;
   handleClose: () => void;
   initialData?: Task;
+  open?: boolean;
 };
 
 function TaskModal(props: TaskModalProps) {
-  const { handleTaskSuccess, handleClose, initialData } = props;
+  const { handleTaskSuccess, handleClose, initialData, open } = props;
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form] = useForm();
 
   const handleFinish = async (values: Task) => {
-    await axiosInstance.post("/tasks/create", values, {
-      data: values,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    setIsLoading(true);
+    try {
+      if (props.initialData) {
+        await axiosInstance.put(`/tasks/${values.id}`, values, {
+          data: values,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      } else {
+        await axiosInstance.post("/tasks/create", values, {
+          data: values,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
 
-    handleTaskSuccess();
+      handleTaskSuccess();
+    } catch (error) {}
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -31,15 +47,15 @@ function TaskModal(props: TaskModalProps) {
   return (
     <Modal
       title={`${initialData ? "Update" : "Create"} task`}
-      open
-      closable
+      open={open}
+      closable={true}
       onCancel={handleClose}
       footer={null}
+      destroyOnClose={true}
     >
       <Form
         form={form}
         onFinish={handleFinish}
-        content="hjjhgghjghjghj"
         initialValues={
           initialData
             ? {
@@ -84,7 +100,12 @@ function TaskModal(props: TaskModalProps) {
               </Form.Item>
             </div>
           )}
-          <Button htmlType="submit" type="primary">
+          <Button
+            htmlType="submit"
+            type="primary"
+            loading={isLoading}
+            disabled={isLoading}
+          >
             Submit
           </Button>
         </div>

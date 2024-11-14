@@ -2,8 +2,8 @@ from django.db import models
 
 class Task(models.Model):
     title = models.TextField(max_length=50)
-    isCompleted = models.BooleanField()
+    isCompleted = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.title
+        return "__all__"
         
